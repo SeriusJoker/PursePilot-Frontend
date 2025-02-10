@@ -2,12 +2,15 @@ import React from 'react';
 import { Button, Container } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 
+// ✅ Use environment variable for backend URL
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
+
 function LoginPage() {
   const navigate = useNavigate();
 
   const handleLogin = () => {
-    // Redirect to backend Google OAuth login route (Updated for production)
-    window.location.href = 'https://pursepilot-backend.onrender.com/api/auth/google';
+    // ✅ Redirect to backend Google OAuth login route
+    window.location.href = `${API_BASE_URL}/api/auth/google`;
   };
 
   return (
