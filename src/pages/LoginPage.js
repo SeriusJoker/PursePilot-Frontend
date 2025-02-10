@@ -6,8 +6,8 @@ function LoginPage() {
   const navigate = useNavigate();
 
   const handleLogin = () => {
-    // Redirect to backend Google OAuth login route
-    window.location.href = 'http://localhost:5000/api/auth/google';
+    // Redirect to backend Google OAuth login route (Updated for production)
+    window.location.href = 'https://pursepilot-backend.onrender.com/api/auth/google';
   };
 
   return (
