@@ -15,12 +15,13 @@
     "react-scripts": "5.0.1",
     "recharts": "^2.15.1",
     "web-vitals": "^4.2.4",
-    "serve": "^14.2.0"
+    "serve": "^14.2.0",
+    "cpy-cli": "^3.1.1"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "postbuild": "cp public/_redirects build/_redirects",
+    "postbuild": "npx cpy public/_redirects build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
