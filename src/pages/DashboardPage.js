@@ -1,15 +1,34 @@
 import React, { useEffect, useState } from 'react';
 import { Container, Row, Col, Form } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
 import { fetchTransactions, getTransactionSummary } from '../services/api';
 import TransactionTable from '../components/TransactionTable';
 import AddTransactionForm from '../components/AddTransactionForm';
 import FinanceSummary from '../components/FinanceSummary';
 import CategoryPieChart from '../components/CategoryPieChart';
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
+
 function DashboardPage() {
   const [transactions, setTransactions] = useState([]);
   const [summary, setSummary] = useState({ totalIncome: 0, totalExpenses: 0, incomeCategories: {}, expenseCategories: {} });
   const [filterBy, setFilterBy] = useState('monthly'); // ✅ Default filter is 'monthly'
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/auth/check`, {
+          credentials: 'include',
+        });
+        if (!response.ok) throw new Error('Not authenticated');
+      } catch (error) {
+        console.error('User is not authenticated:', error);
+        navigate('/'); // Redirect back to login
+      }
+    }
+    checkAuth();
+  }, [navigate]);
 
   useEffect(() => {
     async function loadTransactions() {
@@ -46,51 +65,15 @@ function DashboardPage() {
     setSummary({ totalIncome, totalExpenses, incomeCategories, expenseCategories });
   };
 
-  const convertTransactionAmount = (amount, frequency, filter) => {
-    const conversionRates = {
-      yearly: { yearly: 1, quarterly: 1 / 4, monthly: 1 / 12, weekly: 1 / 52, daily: 1 / 365 },
-      quarterly: { yearly: 4, quarterly: 1, monthly: 1 / 3, weekly: 1 / 13, daily: 1 / 91 },
-      monthly: { yearly: 12, quarterly: 3, monthly: 1, weekly: 1 / 4, daily: 1 / 30 },
-      weekly: { yearly: 52, quarterly: 13, monthly: 4, weekly: 1, daily: 1 / 7 },
-      daily: { yearly: 365, quarterly: 91, monthly: 30, weekly: 7, daily: 1 },
-    };
-  
-    if (frequency === 'once' || frequency === filter) return amount; // ✅ No conversion needed
-  
-    const convertedAmount = amount * (conversionRates[frequency]?.[filter] || 1);
-    console.log(`🔄 Converting ${amount} from ${frequency} to ${filter}: ${convertedAmount}`);
-    return convertedAmount;
-  };
-
   const handleFilterChange = (e) => {
     setFilterBy(e.target.value);
-    updateSummary(transactions, e.target.value); // ✅ Ensure summary updates when filter changes
-  };
-
-  const handleTransactionAdded = (newTransaction) => {
-    const updatedTransactions = [...transactions, newTransaction];
-    setTransactions(updatedTransactions);
-    updateSummary(updatedTransactions, filterBy);
-  };
-
-  const handleTransactionDeleted = (transactionId) => {
-    const updatedTransactions = transactions.filter(txn => txn._id !== transactionId);
-    setTransactions(updatedTransactions);
-    updateSummary(updatedTransactions, filterBy);
-  };
-
-  const handleTransactionUpdated = (updatedTransaction) => {
-    const updatedTransactions = transactions.map(txn =>
-      txn._id === updatedTransaction._id ? updatedTransaction : txn
-    );
-    setTransactions(updatedTransactions);
-    updateSummary(updatedTransactions, filterBy);
+    updateSummary(transactions, e.target.value);
   };
 
   return (
     <Container className="mt-5">
       <h1>Dashboard</h1>
-      <AddTransactionForm onTransactionAdded={handleTransactionAdded} />
+      <AddTransactionForm />
 
       <Row className="my-4">
         <Col>
@@ -98,7 +81,6 @@ function DashboardPage() {
         </Col>
       </Row>
 
-      {/* ✅ Time Filter Dropdown */}
       <Row className="my-3">
         <Col md={4}>
           <Form.Label>Filter By:</Form.Label>
@@ -121,11 +103,7 @@ function DashboardPage() {
         </Col>
       </Row>
 
-      <TransactionTable 
-        transactions={transactions} 
-        onTransactionDeleted={handleTransactionDeleted}
-        onTransactionUpdated={handleTransactionUpdated}
-      />
+      <TransactionTable transactions={transactions} />
     </Container>
   );
 }
