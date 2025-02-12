@@ -44,6 +44,22 @@ function DashboardPage() {
     loadTransactions();
   }, [filterBy]); // ✅ Recalculate when filter changes
 
+  const convertTransactionAmount = (amount, frequency, filter) => {
+    const conversionRates = {
+      yearly: { yearly: 1, quarterly: 1 / 4, monthly: 1 / 12, weekly: 1 / 52, daily: 1 / 365 },
+      quarterly: { yearly: 4, quarterly: 1, monthly: 1 / 3, weekly: 1 / 13, daily: 1 / 91 },
+      monthly: { yearly: 12, quarterly: 3, monthly: 1, weekly: 1 / 4, daily: 1 / 30 },
+      weekly: { yearly: 52, quarterly: 13, monthly: 4, weekly: 1, daily: 1 / 7 },
+      daily: { yearly: 365, quarterly: 91, monthly: 30, weekly: 7, daily: 1 },
+    };
+
+    if (frequency === 'once' || frequency === filter) return amount; // ✅ No conversion needed
+
+    const convertedAmount = amount * (conversionRates[frequency]?.[filter] || 1);
+    console.log(`🔄 Converting ${amount} from ${frequency} to ${filter}: ${convertedAmount}`);
+    return convertedAmount;
+  };
+
   const updateSummary = (data, filter) => {
     let totalIncome = 0;
     let totalExpenses = 0;
