@@ -42,3 +42,14 @@ export const updateTransaction = async (transactionId, updatedData) => {
     return null;
   }
 };
+
+//  Fix the authentication check route
+export const checkAuth = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/auth/check`, { withCredentials: true });
+    return response.data;
+  } catch (error) {
+    console.error("Error checking authentication:", error);
+    return null;
+  }
+};
