@@ -8,7 +8,6 @@ const MongoStore = require('connect-mongo');
 require('./config/passport'); // ✅ Load Passport before using it
 const connectDB = require('./config/db');
 const cron = require('node-cron');
-const processRecurringTransactions = require('./processRecurringTransactions');
 
 const app = express();
 
