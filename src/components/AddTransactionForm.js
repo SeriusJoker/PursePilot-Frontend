@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button, Form, Modal } from 'react-bootstrap';
 
 function AddTransactionForm({ onTransactionAdded }) {
-  const [show, setShow] = useState(false); // ✅ Controls modal visibility
+  const [show, setShow] = useState(false);
   const [transactionData, setTransactionData] = useState({
     amount: '',
     type: 'expense',
@@ -12,8 +12,8 @@ function AddTransactionForm({ onTransactionAdded }) {
     frequency: 'once',
   });
 
-  const handleClose = () => setShow(false); // ✅ Hide form
-  const handleShow = () => setShow(true);   // ✅ Show form
+  const handleClose = () => setShow(false);
+  const handleShow = () => setShow(true);
 
   const handleChange = (e) => {
     setTransactionData({ ...transactionData, [e.target.name]: e.target.value });
@@ -21,18 +21,27 @@ function AddTransactionForm({ onTransactionAdded }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onTransactionAdded(transactionData);
-    handleClose(); // ✅ Close form after adding transaction
+
+    if (!onTransactionAdded || typeof onTransactionAdded !== 'function') {
+      console.error("onTransactionAdded is not a function");
+      return;
+    }
+
+    try {
+      console.log("Submitting Transaction:", transactionData);
+      onTransactionAdded(transactionData);
+      handleClose();
+    } catch (error) {
+      console.error("Error adding transaction:", error);
+    }
   };
 
   return (
     <>
-      {/* ✅ Green "Add Transaction" Button */}
       <Button variant="success" onClick={handleShow}>
         ➕ Add Transaction
       </Button>
 
-      {/* ✅ Modal (Popup Form) */}
       <Modal show={show} onHide={handleClose}>
         <Modal.Header closeButton>
           <Modal.Title>Add Transaction</Modal.Title>
@@ -80,7 +89,7 @@ function AddTransactionForm({ onTransactionAdded }) {
             </Form.Group>
 
             <Button variant="primary" type="submit" className="mt-3">
-              ✅ Submit
+              Submit
             </Button>
           </Form>
         </Modal.Body>
