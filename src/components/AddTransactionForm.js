@@ -1,92 +1,92 @@
-import React, { useState } from 'react';
-import { Button, Form, Modal } from 'react-bootstrap';
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const morgan = require('morgan');
+const session = require('express-session');
+const passport = require('passport');
+const MongoStore = require('connect-mongo');
+require('./config/passport'); // ✅ Load Passport before using it
+const connectDB = require('./config/db');
+const cron = require('node-cron');
+const processRecurringTransactions = require('./processRecurringTransactions');
 
-function AddTransactionForm({ onTransactionAdded }) {
-  const [show, setShow] = useState(false); // ✅ Controls modal visibility
-  const [transactionData, setTransactionData] = useState({
-    amount: '',
-    type: 'expense',
-    category: '',
-    date: '',
-    description: '',
-    frequency: 'once',
-  });
+const app = express();
 
-  const handleClose = () => setShow(false); // ✅ Hide form
-  const handleShow = () => setShow(true);   // ✅ Show form
+(async () => {
+    try {
+        console.log("⏳ Connecting to MongoDB...");
+        const conn = await connectDB(); // ✅ Wait for MongoDB to connect
 
-  const handleChange = (e) => {
-    setTransactionData({ ...transactionData, [e.target.name]: e.target.value });
-  };
+        // ✅ Create a session store connected to MongoDB
+        const sessionStore = MongoStore.create({
+            mongoUrl: process.env.MONGO_URI,
+            dbName: 'finance_app',  // ✅ Explicitly set the database name
+            collectionName: 'sessions',
+            autoRemove: 'native', // ✅ Automatically remove expired sessions
+        });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onTransactionAdded(transactionData);
-    handleClose(); // ✅ Close form after adding transaction
-  };
+        // ✅ Debugging session store connection
+        sessionStore.on('connected', () => console.log("✅ Session store connected to MongoDB"));
+        sessionStore.on('error', (err) => console.error("❌ Session store error:", err));
 
-  return (
-    <>
-      {/* ✅ Green "Add Transaction" Button */}
-      <Button variant="success" onClick={handleShow}>
-        ➕ Add Transaction
-      </Button>
+        // Middleware
+        app.use(express.json());
 
-      {/* ✅ Modal (Popup Form) */}
-      <Modal show={show} onHide={handleClose}>
-        <Modal.Header closeButton>
-          <Modal.Title>Add Transaction</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form onSubmit={handleSubmit}>
-            <Form.Group>
-              <Form.Label>Amount</Form.Label>
-              <Form.Control type="number" name="amount" value={transactionData.amount} onChange={handleChange} required />
-            </Form.Group>
+        app.use(cors({
+            origin: 'https://pursepilot-frontend.onrender.com', // ✅ Allow only frontend
+            credentials: true, // ✅ Allows sending session cookies
+            allowedHeaders: ['Content-Type', 'Authorization'], // ✅ Ensure required headers are allowed
+            methods: ['GET', 'POST', 'PUT', 'DELETE'], // ✅ Allow necessary methods
+        }));
+        app.use(morgan('dev'));
 
-            <Form.Group>
-              <Form.Label>Type</Form.Label>
-              <Form.Select name="type" value={transactionData.type} onChange={handleChange}>
-                <option value="income">Income</option>
-                <option value="expense">Expense</option>
-              </Form.Select>
-            </Form.Group>
+        // ✅ Use MongoDB session storage
+        app.use(session({
+            secret: process.env.SESSION_SECRET,
+            resave: false,
+            saveUninitialized: false,
+            store: sessionStore,
+            cookie: {
+                maxAge: 1000 * 60 * 60 * 24, // 1-day session
+                secure: process.env.NODE_ENV === 'production', // ✅ Only secure in production
+                httpOnly: true, // ✅ Prevent client-side access
+                sameSite: 'None', // 🔥 Required for cross-site cookies in Chrome
+            }
+        }));
 
-            <Form.Group>
-              <Form.Label>Category</Form.Label>
-              <Form.Control type="text" name="category" value={transactionData.category} onChange={handleChange} required />
-            </Form.Group>
+        app.use(passport.initialize());
+        app.use(passport.session());
 
-            <Form.Group>
-              <Form.Label>Date</Form.Label>
-              <Form.Control type="date" name="date" value={transactionData.date} onChange={handleChange} required />
-            </Form.Group>
+        // ✅ Debug session and authentication
+        app.use((req, res, next) => {
+            console.log("🔍 Session Debugging:", req.session);
+            console.log("🔍 Authenticated User:", req.user);
+            next();
+        });
 
-            <Form.Group>
-              <Form.Label>Description</Form.Label>
-              <Form.Control type="text" name="description" value={transactionData.description} onChange={handleChange} />
-            </Form.Group>
+        // API Routes
+        app.use('/api/auth', require('./routes/authRoutes'));
+        app.use('/api/transactions', require('./routes/transactionRoutes'));
 
-            <Form.Group>
-              <Form.Label>Frequency</Form.Label>
-              <Form.Select name="frequency" value={transactionData.frequency} onChange={handleChange}>
-                <option value="once">One-time</option>
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-                <option value="quarterly">Quarterly</option>
-                <option value="yearly">Yearly</option>
-              </Form.Select>
-            </Form.Group>
+        // Test Route
+        app.get('/', (req, res) => {
+            res.send('🚀 API is running...');
+        });
 
-            <Button variant="primary" type="submit" className="mt-3">
-              ✅ Submit
-            </Button>
-          </Form>
-        </Modal.Body>
-      </Modal>
-    </>
-  );
-}
+        // ✅ Schedule recurring transaction job
+        cron.schedule('0 0 * * *', () => {
+            console.log("⏳ Running scheduled job for recurring transactions...");
+            processRecurringTransactions();
+        });
 
-export default AddTransactionForm;
+        // ✅ Only start the server once MongoDB is connected
+        const PORT = process.env.PORT || 5000;
+        app.listen(PORT, () => {
+            console.log(`🚀 Server running on port ${PORT}`);
+        });
+
+    } catch (error) {
+        console.error("❌ MongoDB Connection Failed:", error);
+        process.exit(1); // Stop server if DB connection fails
+    }
+})();
