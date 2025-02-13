@@ -12,7 +12,18 @@ function AddTransactionForm({ onTransactionAdded }) {
     frequency: 'once',
   });
 
-  const handleClose = () => setShow(false);
+  const handleClose = () => {
+    setShow(false);
+    setTransactionData({
+      amount: '',
+      type: 'expense',
+      category: '',
+      date: '',
+      description: '',
+      frequency: 'once',
+    }); // Reset form after closing
+  };
+
   const handleShow = () => setShow(true);
 
   const handleChange = (e) => {
@@ -22,8 +33,8 @@ function AddTransactionForm({ onTransactionAdded }) {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!onTransactionAdded || typeof onTransactionAdded !== 'function') {
-      console.error("onTransactionAdded is not a function");
+    if (typeof onTransactionAdded !== 'function') {
+      console.error("Error: onTransactionAdded is not a function.");
       return;
     }
 
@@ -50,7 +61,13 @@ function AddTransactionForm({ onTransactionAdded }) {
           <Form onSubmit={handleSubmit}>
             <Form.Group>
               <Form.Label>Amount</Form.Label>
-              <Form.Control type="number" name="amount" value={transactionData.amount} onChange={handleChange} required />
+              <Form.Control
+                type="number"
+                name="amount"
+                value={transactionData.amount}
+                onChange={handleChange}
+                required
+              />
             </Form.Group>
 
             <Form.Group>
@@ -63,17 +80,34 @@ function AddTransactionForm({ onTransactionAdded }) {
 
             <Form.Group>
               <Form.Label>Category</Form.Label>
-              <Form.Control type="text" name="category" value={transactionData.category} onChange={handleChange} required />
+              <Form.Control
+                type="text"
+                name="category"
+                value={transactionData.category}
+                onChange={handleChange}
+                required
+              />
             </Form.Group>
 
             <Form.Group>
               <Form.Label>Date</Form.Label>
-              <Form.Control type="date" name="date" value={transactionData.date} onChange={handleChange} required />
+              <Form.Control
+                type="date"
+                name="date"
+                value={transactionData.date}
+                onChange={handleChange}
+                required
+              />
             </Form.Group>
 
             <Form.Group>
               <Form.Label>Description</Form.Label>
-              <Form.Control type="text" name="description" value={transactionData.description} onChange={handleChange} />
+              <Form.Control
+                type="text"
+                name="description"
+                value={transactionData.description}
+                onChange={handleChange}
+              />
             </Form.Group>
 
             <Form.Group>

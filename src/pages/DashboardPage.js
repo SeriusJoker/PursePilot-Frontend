@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Container, Row, Col, Form } from 'react-bootstrap';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { fetchTransactions } from '../services/api'; // uses JWT in headers
+import { fetchTransactions, addTransaction } from '../services/api'; // Ensure addTransaction is imported
 import TransactionTable from '../components/TransactionTable';
 import AddTransactionForm from '../components/AddTransactionForm';
 import FinanceSummary from '../components/FinanceSummary';
@@ -16,24 +16,19 @@ function DashboardPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // 1) Extract ?token=XYZ if present, store in localStorage, and remove from URL
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const token = params.get('token');
     if (token) {
-      // Save token in localStorage
       localStorage.setItem('jwtToken', token);
-      // Optionally remove the token param from the URL
       navigate('/dashboard', { replace: true });
     }
   }, [location, navigate]);
 
-  // 2) Check JWT auth
   useEffect(() => {
     async function checkAuth() {
       const token = localStorage.getItem('jwtToken');
       if (!token) {
-        // No token in localStorage, redirect to login
         console.error("No JWT token found in localStorage");
         navigate('/');
         return;
@@ -54,11 +49,10 @@ function DashboardPage() {
     checkAuth();
   }, [navigate]);
 
-  // 3) Load transactions and update summary
   useEffect(() => {
     async function loadTransactions() {
       try {
-        const data = await fetchTransactions(); // fetchTransactions uses the stored JWT
+        const data = await fetchTransactions();
         console.log("🚀 Transactions received in Dashboard:", data);
         setTransactions(data);
         updateSummary(data, filterBy);
@@ -69,7 +63,21 @@ function DashboardPage() {
     loadTransactions();
   }, [filterBy]);
 
-  // Helper function to convert transaction amounts
+  const handleAddTransaction = async (transactionData) => {
+    try {
+      const newTransaction = await addTransaction(transactionData);
+      if (newTransaction) {
+        console.log("✅ Transaction added:", newTransaction);
+        setTransactions([...transactions, newTransaction]);
+        updateSummary([...transactions, newTransaction], filterBy);
+      } else {
+        console.error("❌ Failed to add transaction");
+      }
+    } catch (error) {
+      console.error("Error adding transaction:", error);
+    }
+  };
+
   const convertTransactionAmount = (amount, frequency, filter) => {
     const conversionRates = {
       yearly: { yearly: 1, quarterly: 1 / 4, monthly: 1 / 12, weekly: 1 / 52, daily: 1 / 365 },
@@ -85,7 +93,6 @@ function DashboardPage() {
     return convertedAmount;
   };
 
-  // Helper to build summary stats
   const updateSummary = (data, filter) => {
     let totalIncome = 0;
     let totalExpenses = 0;
@@ -107,7 +114,6 @@ function DashboardPage() {
     setSummary({ totalIncome, totalExpenses, incomeCategories, expenseCategories });
   };
 
-  // Filter dropdown change
   const handleFilterChange = (e) => {
     setFilterBy(e.target.value);
     updateSummary(transactions, e.target.value);
@@ -116,7 +122,7 @@ function DashboardPage() {
   return (
     <Container className="mt-5">
       <h1>Dashboard</h1>
-      <AddTransactionForm />
+      <AddTransactionForm onTransactionAdded={handleAddTransaction} />
 
       <Row className="my-4">
         <Col>
