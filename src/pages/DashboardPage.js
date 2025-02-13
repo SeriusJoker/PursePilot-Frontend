@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Container, Row, Col, Form } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
-import { fetchTransactions } from '../services/api'; // Presumably uses JWT in headers
+import { useLocation, useNavigate } from 'react-router-dom';
+import { fetchTransactions } from '../services/api'; // uses JWT in headers
 import TransactionTable from '../components/TransactionTable';
 import AddTransactionForm from '../components/AddTransactionForm';
 import FinanceSummary from '../components/FinanceSummary';
@@ -13,41 +13,52 @@ function DashboardPage() {
   const [transactions, setTransactions] = useState([]);
   const [summary, setSummary] = useState({ totalIncome: 0, totalExpenses: 0, incomeCategories: {}, expenseCategories: {} });
   const [filterBy, setFilterBy] = useState('monthly');
+  const location = useLocation();
   const navigate = useNavigate();
 
-  // ✅ Check authentication using JWT
+  // 1) Extract ?token=XYZ if present, store in localStorage, and remove from URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const token = params.get('token');
+    if (token) {
+      // Save token in localStorage
+      localStorage.setItem('jwtToken', token);
+      // Optionally remove the token param from the URL
+      navigate('/dashboard', { replace: true });
+    }
+  }, [location, navigate]);
+
+  // 2) Check JWT auth
   useEffect(() => {
     async function checkAuth() {
-      // 1. Grab token from localStorage
       const token = localStorage.getItem('jwtToken');
       if (!token) {
+        // No token in localStorage, redirect to login
         console.error("No JWT token found in localStorage");
-        navigate('/'); // Redirect to login
+        navigate('/');
         return;
       }
 
       try {
-        // 2. Send token in Authorization header
         const response = await fetch(`${API_BASE_URL}/api/auth/check`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!response.ok) throw new Error('Not authenticated');
-        // If everything is fine, you can set user state or do nothing
         console.log('User is authenticated (JWT check passed).');
       } catch (error) {
         console.error('User is not authenticated (JWT failed):', error);
-        localStorage.removeItem('jwtToken'); // Clear any invalid token
-        navigate('/'); // Redirect to login
+        localStorage.removeItem('jwtToken');
+        navigate('/');
       }
     }
     checkAuth();
   }, [navigate]);
 
-  // ✅ Load transactions
+  // 3) Load transactions and update summary
   useEffect(() => {
     async function loadTransactions() {
       try {
-        const data = await fetchTransactions(); // This uses JWT (in api.js)
+        const data = await fetchTransactions(); // fetchTransactions uses the stored JWT
         console.log("🚀 Transactions received in Dashboard:", data);
         setTransactions(data);
         updateSummary(data, filterBy);
@@ -58,7 +69,7 @@ function DashboardPage() {
     loadTransactions();
   }, [filterBy]);
 
-  // (The rest of your code is unchanged)
+  // Helper function to convert transaction amounts
   const convertTransactionAmount = (amount, frequency, filter) => {
     const conversionRates = {
       yearly: { yearly: 1, quarterly: 1 / 4, monthly: 1 / 12, weekly: 1 / 52, daily: 1 / 365 },
@@ -74,6 +85,7 @@ function DashboardPage() {
     return convertedAmount;
   };
 
+  // Helper to build summary stats
   const updateSummary = (data, filter) => {
     let totalIncome = 0;
     let totalExpenses = 0;
@@ -95,6 +107,7 @@ function DashboardPage() {
     setSummary({ totalIncome, totalExpenses, incomeCategories, expenseCategories });
   };
 
+  // Filter dropdown change
   const handleFilterChange = (e) => {
     setFilterBy(e.target.value);
     updateSummary(transactions, e.target.value);
