@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button, Container } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 
@@ -12,6 +12,17 @@ function LoginPage() {
     // ✅ Redirect to backend Google OAuth login route
     window.location.href = `${API_BASE_URL}/api/auth/google`;
   };
+
+  useEffect(() => {
+    // ✅ Extract token from URL when redirected after login
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+
+    if (token) {
+      localStorage.setItem('jwtToken', token); // ✅ Save token
+      navigate('/dashboard'); // ✅ Redirect to dashboard
+    }
+  }, [navigate]);
 
   return (
     <Container className="text-center mt-5">
