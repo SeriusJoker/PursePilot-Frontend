@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Container, Row, Col, Form } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import { fetchTransactions, getTransactionSummary } from '../services/api';
+import { fetchTransactions } from '../services/api'; // Presumably uses JWT in headers
 import TransactionTable from '../components/TransactionTable';
 import AddTransactionForm from '../components/AddTransactionForm';
 import FinanceSummary from '../components/FinanceSummary';
@@ -12,38 +12,53 @@ const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:500
 function DashboardPage() {
   const [transactions, setTransactions] = useState([]);
   const [summary, setSummary] = useState({ totalIncome: 0, totalExpenses: 0, incomeCategories: {}, expenseCategories: {} });
-  const [filterBy, setFilterBy] = useState('monthly'); // ✅ Default filter is 'monthly'
+  const [filterBy, setFilterBy] = useState('monthly');
   const navigate = useNavigate();
 
+  // ✅ Check authentication using JWT
   useEffect(() => {
     async function checkAuth() {
+      // 1. Grab token from localStorage
+      const token = localStorage.getItem('jwtToken');
+      if (!token) {
+        console.error("No JWT token found in localStorage");
+        navigate('/'); // Redirect to login
+        return;
+      }
+
       try {
+        // 2. Send token in Authorization header
         const response = await fetch(`${API_BASE_URL}/api/auth/check`, {
-          credentials: 'include',
+          headers: { Authorization: `Bearer ${token}` },
         });
         if (!response.ok) throw new Error('Not authenticated');
+        // If everything is fine, you can set user state or do nothing
+        console.log('User is authenticated (JWT check passed).');
       } catch (error) {
-        console.error('User is not authenticated:', error);
-        navigate('/'); // Redirect back to login
+        console.error('User is not authenticated (JWT failed):', error);
+        localStorage.removeItem('jwtToken'); // Clear any invalid token
+        navigate('/'); // Redirect to login
       }
     }
     checkAuth();
   }, [navigate]);
 
+  // ✅ Load transactions
   useEffect(() => {
     async function loadTransactions() {
       try {
-        const data = await fetchTransactions();
+        const data = await fetchTransactions(); // This uses JWT (in api.js)
         console.log("🚀 Transactions received in Dashboard:", data);
         setTransactions(data);
-        updateSummary(data, filterBy); // ✅ Update summary based on filter
+        updateSummary(data, filterBy);
       } catch (error) {
         console.error("❌ Error fetching transactions:", error);
       }
     }
     loadTransactions();
-  }, [filterBy]); // ✅ Recalculate when filter changes
+  }, [filterBy]);
 
+  // (The rest of your code is unchanged)
   const convertTransactionAmount = (amount, frequency, filter) => {
     const conversionRates = {
       yearly: { yearly: 1, quarterly: 1 / 4, monthly: 1 / 12, weekly: 1 / 52, daily: 1 / 365 },
@@ -53,8 +68,7 @@ function DashboardPage() {
       daily: { yearly: 365, quarterly: 91, monthly: 30, weekly: 7, daily: 1 },
     };
 
-    if (frequency === 'once' || frequency === filter) return amount; // ✅ No conversion needed
-
+    if (frequency === 'once' || frequency === filter) return amount;
     const convertedAmount = amount * (conversionRates[frequency]?.[filter] || 1);
     console.log(`🔄 Converting ${amount} from ${frequency} to ${filter}: ${convertedAmount}`);
     return convertedAmount;

@@ -1,15 +1,15 @@
 import axios from 'axios';
 
-// ✅ Correct the API base URL (no extra `/api`)
+// Correct the API base URL (no extra `/api`)
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
 
-// ✅ Helper function to get JWT from localStorage (Ensures no null values)
+// Helper function to get JWT from localStorage (Ensures no null values)
 const getToken = () => {
   const token = localStorage.getItem('jwtToken');
   return token ? `Bearer ${token}` : null;
 };
 
-// ✅ Function to fetch transactions
+// Function to fetch transactions
 export const fetchTransactions = async () => {
   try {
     const response = await axios.get(`${API_BASE_URL}/api/transactions`, {
@@ -22,7 +22,7 @@ export const fetchTransactions = async () => {
   }
 };
 
-// ✅ Function to add a new transaction
+// Function to add a new transaction
 export const addTransaction = async (transactionData) => {
   try {
     const response = await axios.post(`${API_BASE_URL}/api/transactions`, transactionData, {
@@ -35,7 +35,7 @@ export const addTransaction = async (transactionData) => {
   }
 };
 
-// ✅ Function to delete a transaction
+// Function to delete a transaction
 export const deleteTransaction = async (transactionId) => {
   try {
     await axios.delete(`${API_BASE_URL}/api/transactions/${transactionId}`, {
@@ -48,7 +48,7 @@ export const deleteTransaction = async (transactionId) => {
   }
 };
 
-// ✅ Function to update a transaction
+// Function to update a transaction
 export const updateTransaction = async (transactionId, updatedData) => {
   try {
     const response = await axios.put(`${API_BASE_URL}/api/transactions/${transactionId}`, updatedData, {
@@ -61,7 +61,7 @@ export const updateTransaction = async (transactionId, updatedData) => {
   }
 };
 
-// ✅ Function to check authentication status
+// Function to check authentication status
 export const checkAuth = async () => {
   try {
     const response = await axios.get(`${API_BASE_URL}/api/auth/check`, {
@@ -74,10 +74,10 @@ export const checkAuth = async () => {
   }
 };
 
-// ✅ Function to handle unauthorized responses
+// Function to handle unauthorized responses
 const handleAuthError = (error) => {
   if (error.response?.status === 401) {
-    console.warn("⚠️ Unauthorized request! Redirecting to login...");
+    console.warn("Unauthorized request detected. Redirecting to login...");
     localStorage.removeItem('jwtToken'); // Clear token
     window.location.href = '/login'; // Redirect to login
   } else {
