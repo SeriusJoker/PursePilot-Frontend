@@ -13,18 +13,7 @@ function LoginPage() {
     window.location.href = `${API_BASE_URL}/api/auth/google`;
   };
 
-  useEffect(() => {
-    // Extract the token from the URL (if present) after Google login
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
 
-    if (token) {
-      // Store the token in localStorage
-      localStorage.setItem('jwtToken', token);
-      // Redirect to the dashboard
-      navigate('/dashboard');
-    }
-  }, [navigate]);
 
   return (
     <Container className="text-center mt-5">
