@@ -1,38 +1,37 @@
 import React, { useState } from 'react';
 import { Table, Button, Modal, Form } from 'react-bootstrap';
+import { deleteTransaction, updateTransaction } from '../services/api';
 
 function TransactionTable({ transactions, onTransactionDeleted, onTransactionUpdated }) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [currentTransaction, setCurrentTransaction] = useState(null);
 
-  // Handle the delete button
-  const handleDelete = (transactionId) => {
-    // Instead of calling deleteTransaction here, we call the parent's callback
-    // The parent will delete from the backend and update the UI
-    onTransactionDeleted(transactionId);
+  const handleDelete = async (transactionId) => {
+    const success = await deleteTransaction(transactionId);
+    if (success) {
+      // Notify parent that we deleted transactionId
+      onTransactionDeleted(transactionId);
+    }
   };
 
-  // When user clicks the edit button
   const handleEditClick = (transaction) => {
     setCurrentTransaction(transaction);
     setShowEditModal(true);
   };
 
-  // Track changes in the edit form
   const handleEditChange = (e) => {
-    setCurrentTransaction((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
+    setCurrentTransaction({ ...currentTransaction, [e.target.name]: e.target.value });
   };
 
-  // Submit the edit form
-  const handleEditSubmit = (e) => {
+  const handleEditSubmit = async (e) => {
     e.preventDefault();
-    // Call the parent's callback with the updated transaction
-    // The parent will update the backend, then refresh or adjust the UI
-    onTransactionUpdated(currentTransaction);
-    setShowEditModal(false);
+    // 1) Call backend to update
+    const updatedTransaction = await updateTransaction(currentTransaction._id, currentTransaction);
+    if (updatedTransaction) {
+      // 2) Notify parent that we updated to `updatedTransaction`
+      onTransactionUpdated(updatedTransaction);
+      setShowEditModal(false);
+    }
   };
 
   return (
@@ -69,7 +68,6 @@ function TransactionTable({ transactions, onTransactionDeleted, onTransactionUpd
         </tbody>
       </Table>
 
-      {/* Edit Transaction Modal */}
       <Modal show={showEditModal} onHide={() => setShowEditModal(false)}>
         <Modal.Header closeButton>
           <Modal.Title>Edit Transaction</Modal.Title>
@@ -87,15 +85,17 @@ function TransactionTable({ transactions, onTransactionDeleted, onTransactionUpd
                   required
                 />
               </Form.Group>
-
               <Form.Group>
                 <Form.Label>Type</Form.Label>
-                <Form.Select name="type" value={currentTransaction.type} onChange={handleEditChange}>
+                <Form.Select
+                  name="type"
+                  value={currentTransaction.type}
+                  onChange={handleEditChange}
+                >
                   <option value="income">Income</option>
                   <option value="expense">Expense</option>
                 </Form.Select>
               </Form.Group>
-
               <Form.Group>
                 <Form.Label>Category</Form.Label>
                 <Form.Control
@@ -106,7 +106,6 @@ function TransactionTable({ transactions, onTransactionDeleted, onTransactionUpd
                   required
                 />
               </Form.Group>
-
               <Form.Group>
                 <Form.Label>Date</Form.Label>
                 <Form.Control
@@ -117,7 +116,6 @@ function TransactionTable({ transactions, onTransactionDeleted, onTransactionUpd
                   required
                 />
               </Form.Group>
-
               <Form.Group>
                 <Form.Label>Description</Form.Label>
                 <Form.Control
@@ -127,7 +125,6 @@ function TransactionTable({ transactions, onTransactionDeleted, onTransactionUpd
                   onChange={handleEditChange}
                 />
               </Form.Group>
-
               <Form.Group>
                 <Form.Label>Frequency</Form.Label>
                 <Form.Select
@@ -143,7 +140,6 @@ function TransactionTable({ transactions, onTransactionDeleted, onTransactionUpd
                   <option value="yearly">Yearly</option>
                 </Form.Select>
               </Form.Group>
-
               <Button variant="primary" type="submit" className="mt-3">
                 ✅ Save Changes
               </Button>
