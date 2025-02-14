@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Container, Row, Col, Form } from 'react-bootstrap';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { fetchTransactions, addTransaction } from '../services/api'; // Ensure addTransaction is imported
+import { fetchTransactions, addTransaction, updateTransaction, deleteTransaction } from '../services/api';
 import TransactionTable from '../components/TransactionTable';
 import AddTransactionForm from '../components/AddTransactionForm';
 import FinanceSummary from '../components/FinanceSummary';
@@ -68,7 +68,7 @@ function DashboardPage() {
       const newTransaction = await addTransaction(transactionData);
       if (newTransaction) {
         console.log("✅ Transaction added:", newTransaction);
-        setTransactions([...transactions, newTransaction]);
+        setTransactions(prevTransactions => [...prevTransactions, newTransaction]);
         updateSummary([...transactions, newTransaction], filterBy);
       } else {
         console.error("❌ Failed to add transaction");
@@ -78,45 +78,36 @@ function DashboardPage() {
     }
   };
 
-  const convertTransactionAmount = (amount, frequency, filter) => {
-    const conversionRates = {
-      yearly: { yearly: 1, quarterly: 1 / 4, monthly: 1 / 12, weekly: 1 / 52, daily: 1 / 365 },
-      quarterly: { yearly: 4, quarterly: 1, monthly: 1 / 3, weekly: 1 / 13, daily: 1 / 91 },
-      monthly: { yearly: 12, quarterly: 3, monthly: 1, weekly: 1 / 4, daily: 1 / 30 },
-      weekly: { yearly: 52, quarterly: 13, monthly: 4, weekly: 1, daily: 1 / 7 },
-      daily: { yearly: 365, quarterly: 91, monthly: 30, weekly: 7, daily: 1 },
-    };
-
-    if (frequency === 'once' || frequency === filter) return amount;
-    const convertedAmount = amount * (conversionRates[frequency]?.[filter] || 1);
-    console.log(`🔄 Converting ${amount} from ${frequency} to ${filter}: ${convertedAmount}`);
-    return convertedAmount;
-  };
-
-  const updateSummary = (data, filter) => {
-    let totalIncome = 0;
-    let totalExpenses = 0;
-    const incomeCategories = {};
-    const expenseCategories = {};
-
-    data.forEach((txn) => {
-      const adjustedAmount = convertTransactionAmount(txn.amount, txn.frequency, filter);
-      if (txn.type === 'income') {
-        totalIncome += adjustedAmount;
-        incomeCategories[txn.category] = (incomeCategories[txn.category] || 0) + adjustedAmount;
-      } else if (txn.type === 'expense') {
-        totalExpenses += adjustedAmount;
-        expenseCategories[txn.category] = (expenseCategories[txn.category] || 0) + adjustedAmount;
+  const handleUpdateTransaction = async (transactionId, updatedData) => {
+    try {
+      const updatedTransaction = await updateTransaction(transactionId, updatedData);
+      if (updatedTransaction) {
+        console.log("✅ Transaction updated:", updatedTransaction);
+        setTransactions(prevTransactions => 
+          prevTransactions.map(txn => txn._id === transactionId ? updatedTransaction : txn)
+        );
+        updateSummary([...transactions.map(txn => txn._id === transactionId ? updatedTransaction : txn)], filterBy);
+      } else {
+        console.error("❌ Failed to update transaction");
       }
-    });
-
-    console.log(`✅ Updated Summary - Total Income: ${totalIncome}, Total Expenses: ${totalExpenses} (Filtered by: ${filter})`);
-    setSummary({ totalIncome, totalExpenses, incomeCategories, expenseCategories });
+    } catch (error) {
+      console.error("Error updating transaction:", error);
+    }
   };
 
-  const handleFilterChange = (e) => {
-    setFilterBy(e.target.value);
-    updateSummary(transactions, e.target.value);
+  const handleDeleteTransaction = async (transactionId) => {
+    try {
+      const response = await deleteTransaction(transactionId);
+      if (response) {
+        console.log("✅ Transaction deleted:", transactionId);
+        setTransactions(prevTransactions => prevTransactions.filter(txn => txn._id !== transactionId));
+        updateSummary(transactions.filter(txn => txn._id !== transactionId), filterBy);
+      } else {
+        console.error("❌ Failed to delete transaction");
+      }
+    } catch (error) {
+      console.error("Error deleting transaction:", error);
+    }
   };
 
   return (
@@ -152,7 +143,7 @@ function DashboardPage() {
         </Col>
       </Row>
 
-      <TransactionTable transactions={transactions} />
+      <TransactionTable transactions={transactions} onUpdateTransaction={handleUpdateTransaction} onDeleteTransaction={handleDeleteTransaction} />
     </Container>
   );
 }
