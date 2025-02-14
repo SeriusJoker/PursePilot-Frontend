@@ -50,29 +50,26 @@ function DashboardPage() {
   }, [navigate]);
 
   useEffect(() => {
-    async function loadTransactions() {
-      try {
-        const data = await fetchTransactions();
-        console.log("🚀 Transactions received in Dashboard:", data);
-        setTransactions(data);
-        updateSummary(data, filterBy);
-      } catch (error) {
-        console.error("❌ Error fetching transactions:", error);
-      }
-    }
     loadTransactions();
   }, [filterBy]);
+
+  const loadTransactions = async () => {
+    try {
+      const data = await fetchTransactions();
+      console.log("🚀 Transactions received in Dashboard:", data);
+      setTransactions(data);
+      updateSummary(data, filterBy);
+    } catch (error) {
+      console.error("❌ Error fetching transactions:", error);
+    }
+  };
 
   const handleAddTransaction = async (transactionData) => {
     try {
       const newTransaction = await addTransaction(transactionData);
       if (newTransaction) {
         console.log("✅ Transaction added:", newTransaction);
-        setTransactions((prevTransactions) => {
-          const updatedTransactions = [...prevTransactions, newTransaction];
-          updateSummary(updatedTransactions, filterBy);
-          return updatedTransactions;
-        });
+        loadTransactions();  // RELOAD transactions after adding
       } else {
         console.error("❌ Failed to add transaction");
       }
@@ -86,13 +83,7 @@ function DashboardPage() {
       const updatedTransaction = await updateTransaction(transactionId, updatedData);
       if (updatedTransaction) {
         console.log("✅ Transaction updated:", updatedTransaction);
-        setTransactions((prevTransactions) => {
-          const updatedTransactions = prevTransactions.map((txn) =>
-            txn._id === transactionId ? updatedTransaction : txn
-          );
-          updateSummary(updatedTransactions, filterBy);
-          return updatedTransactions;
-        });
+        loadTransactions();  // RELOAD transactions after updating
       } else {
         console.error("❌ Failed to update transaction");
       }
@@ -106,11 +97,7 @@ function DashboardPage() {
       const success = await deleteTransaction(transactionId);
       if (success) {
         console.log("✅ Transaction deleted:", transactionId);
-        setTransactions((prevTransactions) => {
-          const updatedTransactions = prevTransactions.filter((txn) => txn._id !== transactionId);
-          updateSummary(updatedTransactions, filterBy);
-          return updatedTransactions;
-        });
+        loadTransactions();  // RELOAD transactions after deleting
       } else {
         console.error("❌ Failed to delete transaction");
       }
