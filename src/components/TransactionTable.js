@@ -1,34 +1,38 @@
 import React, { useState } from 'react';
 import { Table, Button, Modal, Form } from 'react-bootstrap';
-import { deleteTransaction, updateTransaction } from '../services/api';
 
 function TransactionTable({ transactions, onTransactionDeleted, onTransactionUpdated }) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [currentTransaction, setCurrentTransaction] = useState(null);
 
-  const handleDelete = async (transactionId) => {
-    const success = await deleteTransaction(transactionId);
-    if (success) {
-      onTransactionDeleted(transactionId);
-    }
+  // Handle the delete button
+  const handleDelete = (transactionId) => {
+    // Instead of calling deleteTransaction here, we call the parent's callback
+    // The parent will delete from the backend and update the UI
+    onTransactionDeleted(transactionId);
   };
 
+  // When user clicks the edit button
   const handleEditClick = (transaction) => {
     setCurrentTransaction(transaction);
     setShowEditModal(true);
   };
 
+  // Track changes in the edit form
   const handleEditChange = (e) => {
-    setCurrentTransaction({ ...currentTransaction, [e.target.name]: e.target.value });
+    setCurrentTransaction((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
   };
 
-  const handleEditSubmit = async (e) => {
+  // Submit the edit form
+  const handleEditSubmit = (e) => {
     e.preventDefault();
-    const updatedTransaction = await updateTransaction(currentTransaction._id, currentTransaction);
-    if (updatedTransaction) {
-      onTransactionUpdated(updatedTransaction);
-      setShowEditModal(false);
-    }
+    // Call the parent's callback with the updated transaction
+    // The parent will update the backend, then refresh or adjust the UI
+    onTransactionUpdated(currentTransaction);
+    setShowEditModal(false);
   };
 
   return (
@@ -41,7 +45,7 @@ function TransactionTable({ transactions, onTransactionDeleted, onTransactionUpd
             <th>Type</th>
             <th>Amount</th>
             <th>Frequency</th>
-            <th>Actions</th> {/* ✅ New column for edit button */}
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -65,7 +69,7 @@ function TransactionTable({ transactions, onTransactionDeleted, onTransactionUpd
         </tbody>
       </Table>
 
-      {/* ✅ Edit Transaction Modal */}
+      {/* Edit Transaction Modal */}
       <Modal show={showEditModal} onHide={() => setShowEditModal(false)}>
         <Modal.Header closeButton>
           <Modal.Title>Edit Transaction</Modal.Title>
@@ -75,8 +79,15 @@ function TransactionTable({ transactions, onTransactionDeleted, onTransactionUpd
             <Form onSubmit={handleEditSubmit}>
               <Form.Group>
                 <Form.Label>Amount</Form.Label>
-                <Form.Control type="number" name="amount" value={currentTransaction.amount} onChange={handleEditChange} required />
+                <Form.Control
+                  type="number"
+                  name="amount"
+                  value={currentTransaction.amount}
+                  onChange={handleEditChange}
+                  required
+                />
               </Form.Group>
+
               <Form.Group>
                 <Form.Label>Type</Form.Label>
                 <Form.Select name="type" value={currentTransaction.type} onChange={handleEditChange}>
@@ -84,21 +95,46 @@ function TransactionTable({ transactions, onTransactionDeleted, onTransactionUpd
                   <option value="expense">Expense</option>
                 </Form.Select>
               </Form.Group>
+
               <Form.Group>
                 <Form.Label>Category</Form.Label>
-                <Form.Control type="text" name="category" value={currentTransaction.category} onChange={handleEditChange} required />
+                <Form.Control
+                  type="text"
+                  name="category"
+                  value={currentTransaction.category}
+                  onChange={handleEditChange}
+                  required
+                />
               </Form.Group>
+
               <Form.Group>
                 <Form.Label>Date</Form.Label>
-                <Form.Control type="date" name="date" value={currentTransaction.date.split('T')[0]} onChange={handleEditChange} required />
+                <Form.Control
+                  type="date"
+                  name="date"
+                  value={currentTransaction.date.split('T')[0]}
+                  onChange={handleEditChange}
+                  required
+                />
               </Form.Group>
+
               <Form.Group>
                 <Form.Label>Description</Form.Label>
-                <Form.Control type="text" name="description" value={currentTransaction.description} onChange={handleEditChange} />
+                <Form.Control
+                  type="text"
+                  name="description"
+                  value={currentTransaction.description}
+                  onChange={handleEditChange}
+                />
               </Form.Group>
+
               <Form.Group>
                 <Form.Label>Frequency</Form.Label>
-                <Form.Select name="frequency" value={currentTransaction.frequency} onChange={handleEditChange}>
+                <Form.Select
+                  name="frequency"
+                  value={currentTransaction.frequency}
+                  onChange={handleEditChange}
+                >
                   <option value="once">One-time</option>
                   <option value="daily">Daily</option>
                   <option value="weekly">Weekly</option>
@@ -107,6 +143,7 @@ function TransactionTable({ transactions, onTransactionDeleted, onTransactionUpd
                   <option value="yearly">Yearly</option>
                 </Form.Select>
               </Form.Group>
+
               <Button variant="primary" type="submit" className="mt-3">
                 ✅ Save Changes
               </Button>
