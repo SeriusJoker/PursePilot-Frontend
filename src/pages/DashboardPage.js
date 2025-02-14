@@ -68,8 +68,11 @@ function DashboardPage() {
       const newTransaction = await addTransaction(transactionData);
       if (newTransaction) {
         console.log("✅ Transaction added:", newTransaction);
-        setTransactions([...transactions, newTransaction]);
-        updateSummary([...transactions, newTransaction], filterBy);
+        setTransactions((prevTransactions) => {
+          const updatedTransactions = [...prevTransactions, newTransaction];
+          updateSummary(updatedTransactions, filterBy);
+          return updatedTransactions;
+        });
       } else {
         console.error("❌ Failed to add transaction");
       }
@@ -83,10 +86,13 @@ function DashboardPage() {
       const updatedTransaction = await updateTransaction(transactionId, updatedData);
       if (updatedTransaction) {
         console.log("✅ Transaction updated:", updatedTransaction);
-        setTransactions((prev) =>
-          prev.map((txn) => (txn._id === transactionId ? updatedTransaction : txn))
-        );
-        updateSummary(transactions, filterBy);
+        setTransactions((prevTransactions) => {
+          const updatedTransactions = prevTransactions.map((txn) =>
+            txn._id === transactionId ? updatedTransaction : txn
+          );
+          updateSummary(updatedTransactions, filterBy);
+          return updatedTransactions;
+        });
       } else {
         console.error("❌ Failed to update transaction");
       }
@@ -100,8 +106,11 @@ function DashboardPage() {
       const success = await deleteTransaction(transactionId);
       if (success) {
         console.log("✅ Transaction deleted:", transactionId);
-        setTransactions((prev) => prev.filter((txn) => txn._id !== transactionId));
-        updateSummary(transactions.filter((txn) => txn._id !== transactionId), filterBy);
+        setTransactions((prevTransactions) => {
+          const updatedTransactions = prevTransactions.filter((txn) => txn._id !== transactionId);
+          updateSummary(updatedTransactions, filterBy);
+          return updatedTransactions;
+        });
       } else {
         console.error("❌ Failed to delete transaction");
       }
@@ -120,9 +129,7 @@ function DashboardPage() {
     };
 
     if (frequency === 'once' || frequency === filter) return amount;
-    const convertedAmount = amount * (conversionRates[frequency]?.[filter] || 1);
-    console.log(`🔄 Converting ${amount} from ${frequency} to ${filter}: ${convertedAmount}`);
-    return convertedAmount;
+    return amount * (conversionRates[frequency]?.[filter] || 1);
   };
 
   const updateSummary = (data, filter) => {
